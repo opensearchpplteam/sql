@@ -126,11 +126,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     if (builder instanceof CompositeAggregationBuilder composite) {
       boolean asc = collations.get(0).getDirection() == RelFieldCollation.Direction.ASCENDING;
       String aggName = getAggregationPath(collations, fieldNames, composite);
-      String orderPath = resolveOrderPath(aggName, composite);
-      BucketOrder bucketOrder =
-          composite.getSubAggregations().isEmpty()
-              ? BucketOrder.count(asc)
-              : BucketOrder.aggregation(orderPath, asc);
+      BucketOrder bucketOrder;
+      if (composite.getSubAggregations().isEmpty()) {
+        bucketOrder = BucketOrder.count(asc);
+      } else {
+        String orderPath = resolveOrderPath(aggName, composite);
+        bucketOrder = BucketOrder.aggregation(orderPath, asc);
+      }
       AggregationBuilder aggregationBuilder = null;
       if (composite.sources().size() == 1) {
         if (composite.sources().get(0) instanceof TermsValuesSourceBuilder terms
@@ -348,7 +350,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
         composite.getSubAggregations().stream()
             .filter(sub -> sub.getName().equals(aggName))
             .findFirst()
-            .orElse(null);
+            .orElseThrow(() -> new IllegalStateException("Aggregation not found: " + aggName));
     if (sortMetric instanceof StatsAggregationBuilder) {
       return aggName + ".sum";
     }

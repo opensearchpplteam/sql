@@ -28,7 +28,7 @@ public class SumStatsParser implements MetricParser {
   @Override
   public List<Map<String, Object>> parse(Aggregation agg) {
     Stats stats = (Stats) agg;
-    Object value = stats.getCount() == 0 ? null : stats.getSum();
+    Object value = (stats.getCount() == 0 || Double.isNaN(stats.getSum())) ? null : stats.getSum();
     return Collections.singletonList(new HashMap<>(Collections.singletonMap(agg.getName(), value)));
   }
 }
